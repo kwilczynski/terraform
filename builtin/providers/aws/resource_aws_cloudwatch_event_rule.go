@@ -39,8 +39,8 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 			"event_pattern": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateMaxLength(2048),
-				StateFunc:    normalizeJson,
+				StateFunc:    normalizeJsonStateFunc,
+				ValidateFunc: validateEventPatternValue(2048),
 			},
 			"description": &schema.Schema{
 				Type:         schema.TypeString,
@@ -123,7 +123,8 @@ func resourceAwsCloudWatchEventRuleRead(d *schema.ResourceData, meta interface{}
 	d.Set("arn", out.Arn)
 	d.Set("description", out.Description)
 	if out.EventPattern != nil {
-		d.Set("event_pattern", normalizeJson(*out.EventPattern))
+		pattern, _ := normalizeJson(*out.EventPattern)
+		d.Set("event_pattern", pattern)
 	}
 	d.Set("name", out.Name)
 	d.Set("role_arn", out.RoleArn)
@@ -214,7 +215,8 @@ func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
 		input.Description = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("event_pattern"); ok {
-		input.EventPattern = aws.String(normalizeJson(v.(string)))
+		pattern, _ := normalizeJson(v.(string))
+		input.EventPattern = aws.String(pattern)
 	}
 	if v, ok := d.GetOk("role_arn"); ok {
 		input.RoleArn = aws.String(v.(string))
@@ -246,4 +248,18 @@ func getStringStateFromBoolean(isEnabled bool) string {
 		return "ENABLED"
 	}
 	return "DISABLED"
+}
+
+func validateEventPatternValue(length int) schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+		value := v.(string)
+		if len(value) > length {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be longer than %d characters: %q", k, length, value))
+		}
+		if _, err := normalizeJson(value); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+		}
+		return
+	}
 }
