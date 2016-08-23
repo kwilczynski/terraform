@@ -34,10 +34,11 @@ func resourceArmTemplateDeployment() *schema.Resource {
 			},
 
 			"template_body": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				StateFunc:    normalizeJsonStateFunc,
+				ValidateFunc: validateJsonFunc,
 			},
 
 			"parameters": {
@@ -198,17 +199,30 @@ func expandTemplateBody(template string) (map[string]interface{}, error) {
 	return templateBody, nil
 }
 
-func normalizeJson(jsonString interface{}) string {
+func normalizeJson(jsonString interface{}) (string, error) {
 	if jsonString == nil || jsonString == "" {
-		return ""
+		return "", nil
 	}
 	var j interface{}
 	err := json.Unmarshal([]byte(jsonString.(string)), &j)
 	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
+		return jsonString.(string), err
 	}
 	b, _ := json.Marshal(j)
-	return string(b[:])
+	return string(b[:]), nil
+}
+
+func normalizeJsonStateFunc(v interface{}) string {
+	json, _ := normalizeJson(v)
+	return json
+}
+
+func validateJsonFunc(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if _, err := normalizeJson(value); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
 }
 
 func templateDeploymentStateRefreshFunc(client *ArmClient, resourceGroupName string, name string) resource.StateRefreshFunc {
