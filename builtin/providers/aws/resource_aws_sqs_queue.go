@@ -77,9 +77,10 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Computed:         true,
 			},
 			"redrive_policy": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				StateFunc:    normalizeJsonStateFunc,
+				ValidateFunc: validateJsonFunc,
 			},
 			"arn": {
 				Type:     schema.TypeString,
