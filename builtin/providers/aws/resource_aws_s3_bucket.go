@@ -49,6 +49,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				StateFunc:        normalizeJsonStateFunc,
+				ValidateFunc:     validateJsonFunc,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -111,9 +115,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 
 						"routing_rules": &schema.Schema{
-							Type:      schema.TypeString,
-							Optional:  true,
-							StateFunc: normalizeJson,
+							Type:         schema.TypeString,
+							Optional:     true,
+							StateFunc:    normalizeJsonStateFunc,
+							ValidateFunc: validateJsonFunc,
 						},
 					},
 				},
@@ -465,8 +470,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			if err := d.Set("policy", ""); err != nil {
 				return err
 			}
-		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
-			return err
+		} else {
+			policy, _ := normalizeJson(*v)
+			if err := d.Set("policy", policy); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1399,17 +1407,30 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 	return withoutNil
 }
 
-func normalizeJson(jsonString interface{}) string {
+func normalizeJson(jsonString interface{}) (string, error) {
 	if jsonString == nil || jsonString == "" {
-		return ""
+		return "", nil
 	}
 	var j interface{}
 	err := json.Unmarshal([]byte(jsonString.(string)), &j)
 	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
+		return jsonString.(string), err
 	}
 	b, _ := json.Marshal(j)
-	return string(b[:])
+	return string(b[:]), nil
+}
+
+func normalizeJsonStateFunc(v interface{}) string {
+	json, _ := normalizeJson(v)
+	return json
+}
+
+func validateJsonFunc(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if _, err := normalizeJson(value); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
 }
 
 func normalizeRegion(region string) string {
