@@ -23,8 +23,12 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
 				Type:             schema.TypeString,
-				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				Optional:         true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				StateFunc:        normalizeJsonStateFunc,
+				ValidateFunc:     validateJsonFunc,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -269,7 +273,8 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	ds := out.DomainStatus
 
 	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
-		d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+		policies, _ := normalizeJson(*ds.AccessPolicies)
+		d.Set("access_policies", policies)
 	}
 	err = d.Set("advanced_options", pointersMapToStringList(ds.AdvancedOptions))
 	if err != nil {
