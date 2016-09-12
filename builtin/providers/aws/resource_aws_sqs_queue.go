@@ -73,8 +73,9 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				Computed:         true,
+				ValidateFunc:     validateJsonFunc,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"redrive_policy": {
 				Type:         schema.TypeString,
