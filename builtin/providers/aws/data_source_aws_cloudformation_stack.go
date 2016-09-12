@@ -20,7 +20,7 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 			"template_body": {
 				Type:      schema.TypeString,
 				Computed:  true,
-				StateFunc: normalizeJson,
+				StateFunc: normalizeJsonStateFunc,
 			},
 			"capabilities": {
 				Type:     schema.TypeSet,
@@ -103,7 +103,8 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.Set("template_body", normalizeJson(*tOut.TemplateBody))
+	template, _ := normalizeJson(*tOut.TemplateBody)
+	d.Set("template_body", template)
 
 	return nil
 }
