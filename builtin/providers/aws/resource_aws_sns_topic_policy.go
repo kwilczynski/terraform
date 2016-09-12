@@ -30,6 +30,7 @@ func resourceAwsSnsTopicPolicy() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ValidateFunc:     validateJsonFunc,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},
