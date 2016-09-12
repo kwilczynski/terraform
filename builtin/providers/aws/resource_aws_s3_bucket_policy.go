@@ -29,6 +29,7 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 			"policy": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ValidateFunc:     validateJsonFunc,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},
