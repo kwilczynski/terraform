@@ -24,9 +24,6 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 			"access_policies": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
-				Type:             schema.TypeString,
-				Optional:         true,
-				StateFunc:        normalizeJsonStateFunc,
 				ValidateFunc:     validateJsonFunc,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
