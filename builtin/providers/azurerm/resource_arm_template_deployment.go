@@ -34,10 +34,14 @@ func resourceArmTemplateDeployment() *schema.Resource {
 			},
 
 			"template_body": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 
 			"parameters": {
@@ -196,19 +200,6 @@ func expandTemplateBody(template string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("Error Expanding the template_body for Azure RM Template Deployment")
 	}
 	return templateBody, nil
-}
-
-func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil || jsonString == "" {
-		return ""
-	}
-	var j interface{}
-	err := json.Unmarshal([]byte(jsonString.(string)), &j)
-	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
-	}
-	b, _ := json.Marshal(j)
-	return string(b[:])
 }
 
 func templateDeploymentStateRefreshFunc(client *ArmClient, resourceGroupName string, name string) resource.StateRefreshFunc {
