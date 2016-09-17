@@ -110,9 +110,13 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 		},
 
 		"custom_json": &schema.Schema{
-			Type:      schema.TypeString,
-			StateFunc: normalizeJson,
-			Optional:  true,
+			Type:         schema.TypeString,
+			Optional:     true,
+			ValidateFunc: validateJsonString,
+			StateFunc: func(v interface{}) string {
+				json, _ := normalizeJsonString(v)
+				return json
+			},
 		},
 
 		"auto_healing": &schema.Schema{
@@ -298,8 +302,11 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 		if err := d.Set("custom_json", ""); err != nil {
 			return err
 		}
-	} else if err := d.Set("custom_json", normalizeJson(*v)); err != nil {
-		return err
+	} else {
+		json, _ := normalizeJsonString(*v)
+		if err := d.Set("custom_json", json); err != nil {
+			return err
+		}
 	}
 
 	lt.SetAttributeMap(d, layer.Attributes)
