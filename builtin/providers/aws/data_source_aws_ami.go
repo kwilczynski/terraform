@@ -230,6 +230,38 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		params.Owners = expandStringList(owners.([]interface{}))
 	}
 
+	hasFilter := func(n string, f []*ec2.Filter) (*ec2.Filter, bool) {
+		if len(f) == 0 {
+			return nil, false
+		}
+
+		for _, v := range f {
+			if *v.Name == n {
+				return v, true
+			}
+		}
+
+		return nil, false
+	}
+
+	// By default look for Amazon Machine Image (AMI) only.
+	if _, ok := hasFilter("image-type", params.Filters); !ok {
+		params.Filters = append(params.Filters, &ec2.Filter{
+			Name:   aws.String("image-type"),
+			Values: []*string{aws.String("machine")},
+		})
+	}
+
+	// By default look for images that are available to use.
+	if _, ok := hasFilter("state", params.Filters); !ok {
+		params.Filters = append(params.Filters, &ec2.Filter{
+			Name:   aws.String("state"),
+			Values: []*string{aws.String("available")},
+		})
+	}
+
+	log.Printf("[DEBUG] Describe Images configuration: %#v", params)
+
 	resp, err := conn.DescribeImages(params)
 	if err != nil {
 		return err
